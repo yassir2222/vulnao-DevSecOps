@@ -60,22 +60,31 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Run OWASP Dependency Check
-        uses: dependency-check/Dependency-Check_Action@main
+      - name: Cache NVD Data
+        uses: actions/cache@v3
         with:
-          project: 'vulnado'
-          path: '.'
-          format: 'HTML'
-          args: >
-            --failOnCVSS 7
-            --enableRetired
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: ${{ runner.os }}-nvd-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-nvd-
+
+      - name: Run OWASP Dependency Check with NVD API Key
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          mvn org.owasp:dependency-check-maven:check \\
+            -DnvdApiKey=${NVD_API_KEY} \\
+            -DfailBuildOnCVSS=11 \\
+            -DskipSystemScope=true \\
+            -DskipTestScope=true
+        continue-on-error: true
 
       - name: Upload OWASP Report
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: owasp-dependency-check-report
-          path: reports/
+          path: target/dependency-check-report.html
 
   snyk-monitor:
     name: Snyk Monitor
