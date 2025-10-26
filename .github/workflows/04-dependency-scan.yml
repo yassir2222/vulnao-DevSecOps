@@ -113,35 +113,34 @@ jobs:
             target/dependency-check-report.sarif
           if-no-files-found: warn
 
-  snyk-monitor:
-      name: Snyk Monitor
-      runs-on: ubuntu-latest
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      needs: snyk-scan # This job still depends on the scan finishing first
+snyk-monitor:
+    name: Snyk Monitor
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: snyk-scan
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1. Set up the Java environment on the runner
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      # 2. (Optional but Recommended) Build the project to ensure all dependencies are present
+      - name: Build Project
+        run: mvn clean install -DskipTests
+
+      # 3. Install the Snyk CLI directly onto the runner
+      - name: Set up Snyk CLI
+        uses: snyk/actions/setup@master
       
-      steps:
-        - uses: actions/checkout@v4
-
-        # The Snyk action will handle Java setup if needed, but it's good practice 
-        # to set it up for consistency and for build steps.
-        - uses: actions/setup-java@v4
-          with:
-            java-version: '17'
-            distribution: 'temurin'
-            cache: maven
-
-        # Optional but recommended: ensure project is buildable before monitoring
-        - name: Build Project
-          run: mvn clean install -DskipTests
-
-        - name: Snyk Monitor
-          # Use the official Snyk GitHub Action for Maven
-          uses: snyk/actions/maven@master
-          env:
-            # The SNYK_TOKEN is securely passed to the action
-            SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-          with:
-            # Command to run, in this case 'monitor'
-            command: monitor
-            # Arguments for the Snyk command
-            args: --org=yassir2222 --file=pom.xml
+      # 4. Run Snyk Monitor in the same environment where Java was set up
+      - name: Snyk Monitor
+        run: snyk monitor --org=yassir2222 --file=pom.xml
+        env:
+          # The SNYK_TOKEN is automatically picked up by the CLI from the environment
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
