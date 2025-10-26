@@ -113,7 +113,7 @@ jobs:
             target/dependency-check-report.sarif
           if-no-files-found: warn
 
-snyk-monitor:
+  snyk-monitor:
     name: Snyk Monitor
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
