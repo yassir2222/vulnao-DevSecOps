@@ -120,7 +120,8 @@ snyk-monitor:
     needs: snyk-scan
     
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       # 1. Set up the Java environment on the runner
       - name: Set up JDK 17
@@ -130,7 +131,7 @@ snyk-monitor:
           distribution: 'temurin'
           cache: maven
 
-      # 2. (Optional but Recommended) Build the project to ensure all dependencies are present
+      # 2. (Optional but Recommended) Build the project to ensure dependencies are present
       - name: Build Project
         run: mvn clean install -DskipTests
 
@@ -142,5 +143,4 @@ snyk-monitor:
       - name: Snyk Monitor
         run: snyk monitor --org=yassir2222 --file=pom.xml
         env:
-          # The SNYK_TOKEN is automatically picked up by the CLI from the environment
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
