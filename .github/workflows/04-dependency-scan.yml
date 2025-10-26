@@ -118,29 +118,34 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: snyk-scan
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      # 1. Set up the Java environment on the runner
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: maven
+    - uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
 
-      # 2. (Optional but Recommended) Build the project to ensure dependencies are present
-      - name: Build Project
-        run: mvn clean install -DskipTests
+    - name: Build Project
+      run: mvn -B -q clean install -DskipTests
 
-      # 3. Install the Snyk CLI directly onto the runner
-      - name: Set up Snyk CLI
-        uses: snyk/actions/setup@master
-      
-      # 4. Run Snyk Monitor in the same environment where Java was set up
-      - name: Snyk Monitor
-        run: snyk monitor --org=yassir2222 --file=pom.xml
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+    # Force Snyk to use system mvn instead of ./mvnw (avoids Takari -f bug)
+    - name: Disable Maven Wrapper for Snyk
+      run: |
+        if [ -f mvnw ]; then
+          echo "Disabling mvnw so Snyk uses mvn from PATH"
+          mv mvnw mvnw.disabled
+        fi
+
+    - name: Set up Snyk CLI
+      uses: snyk/actions/setup@v4
+
+    # Optional sanity check so failures are obvious before Snyk runs
+    - name: Verify dependency:tree works
+      run: mvn -B -q org.apache.maven.plugins:maven-dependency-plugin:3.6.1:tree -DoutputType=dot -N -f pom.xml
+
+    - name: Snyk Monitor
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      run: snyk monitor --org=yassir2222 --file=pom.xml
