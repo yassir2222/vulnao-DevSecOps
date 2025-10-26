@@ -127,25 +127,23 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    - name: Build Project
-      run: mvn -B -q clean install -DskipTests
-
-    # Force Snyk to use system mvn instead of ./mvnw (avoids Takari -f bug)
-    - name: Disable Maven Wrapper for Snyk
-      run: |
-        if [ -f mvnw ]; then
-          echo "Disabling mvnw so Snyk uses mvn from PATH"
-          mv mvnw mvnw.disabled
-        fi
-
+    # Install Snyk CLI via the official action (correct action path + tag)
     - name: Set up Snyk CLI
-      uses: snyk/actions/setup@v4
+      uses: snyk/actions/setup@v3
 
-    # Optional sanity check so failures are obvious before Snyk runs
-    - name: Verify dependency:tree works
+    # Work from the Maven project folder
+    - name: Disable Maven Wrapper so Snyk uses mvn
+      working-directory: vulnado
+      run: |
+        if [ -f mvnw ]; then mv mvnw mvnw.disabled; fi
+
+    # Optional: sanity check that dependency:tree works for Snyk
+    - name: Verify dependency:tree
+      working-directory: vulnado
       run: mvn -B -q org.apache.maven.plugins:maven-dependency-plugin:3.6.1:tree -DoutputType=dot -N -f pom.xml
 
     - name: Snyk Monitor
+      working-directory: vulnado
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       run: snyk monitor --org=yassir2222 --file=pom.xml
