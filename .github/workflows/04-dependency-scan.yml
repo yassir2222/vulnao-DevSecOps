@@ -129,21 +129,18 @@ jobs:
 
     # Install Snyk CLI via the official action (correct action path + tag)
     - name: Set up Snyk CLI
-      uses: snyk/actions/setup@master
+      uses: snyk/actions/setup@v3
 
     # Work from the Maven project folder
     - name: Disable Maven Wrapper so Snyk uses mvn
-      working-directory: vulnado
       run: |
         if [ -f mvnw ]; then mv mvnw mvnw.disabled; fi
 
     # Optional: sanity check that dependency:tree works for Snyk
     - name: Verify dependency:tree
-      working-directory: vulnado
       run: mvn -B -q org.apache.maven.plugins:maven-dependency-plugin:3.6.1:tree -DoutputType=dot -N -f pom.xml
 
     - name: Snyk Monitor
-      working-directory: vulnado
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       run: snyk monitor --org=yassir2222 --file=pom.xml
