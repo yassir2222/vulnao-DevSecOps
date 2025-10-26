@@ -32,7 +32,7 @@ jobs:
           echo "SQL Injection tests completed" > sql-injection-results.txt
 
       - name: Upload results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sql-injection-test-results
           path: sql-injection-results.txt
@@ -65,7 +65,7 @@ jobs:
           echo "XSS tests completed" > xss-results.txt
 
       - name: Upload results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: xss-test-results
           path: xss-results.txt
@@ -98,7 +98,7 @@ jobs:
           echo "SSRF tests completed" > ssrf-results.txt
 
       - name: Upload results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ssrf-test-results
           path: ssrf-results.txt
@@ -124,7 +124,7 @@ jobs:
 
       - name: Upload Nikto results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: nikto-scan-results
           path: nikto-results.json

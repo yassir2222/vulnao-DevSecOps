@@ -33,7 +33,7 @@ jobs:
 
       - name: Upload ZAP Baseline Report
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: zap-baseline-report
           path: |
@@ -64,7 +64,7 @@ jobs:
 
       - name: Upload ZAP Full Scan Report
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: zap-full-scan-report
           path: |
@@ -95,7 +95,7 @@ jobs:
 
       - name: Upload ZAP API Report
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: zap-api-scan-report
           path: |
