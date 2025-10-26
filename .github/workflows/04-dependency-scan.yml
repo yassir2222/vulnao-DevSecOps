@@ -37,8 +37,7 @@ jobs:
           snyk test \
             --severity-threshold=high \
             --json-file-output=snyk-report.json \
-            --sarif-file-output=snyk.sarif \
-            --all-projects || true
+            --sarif-file-output=snyk.sarif || true
 
       - name: Upload Snyk SARIF
         if: always() && hashFiles('snyk.sarif') != ''
@@ -136,6 +135,6 @@ jobs:
         run: |
           npm install -g snyk
           snyk auth ${{ secrets.SNYK_TOKEN }}
-          snyk monitor --project-name=vulnado --all-projects
+          snyk monitor --org=yassir2222 --project-name=vulnao-DevSecOps
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
