@@ -113,7 +113,7 @@ jobs:
             target/dependency-check-report.sarif
           if-no-files-found: warn
 
-  snyk-monitor:
+    snyk-monitor:
     name: Snyk Monitor
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -131,10 +131,13 @@ jobs:
       - name: Build Project
         run: mvn clean install -DskipTests
 
+      - name: Install Snyk CLI
+        run: |
+          curl -Lo snyk https://github.com/snyk/cli/releases/latest/download/snyk-linux
+          chmod +x snyk
+          sudo mv snyk /usr/local/bin/
+
       - name: Snyk Monitor
-        uses: snyk/actions/maven@master
+        run: snyk monitor --org=yassir2222 --file=pom.xml
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: monitor
-          args: --org=yassir2222
