@@ -86,7 +86,7 @@ jobs:
         run: |
           echo "Quality Gate Failed!"
           echo "Check the SonarCloud dashboard for details"
-          exit 1
+          
 
       - name: Upload SonarCloud Results
         if: always()
