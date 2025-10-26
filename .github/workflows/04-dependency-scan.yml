@@ -114,30 +114,34 @@ jobs:
           if-no-files-found: warn
 
   snyk-monitor:
-    name: Snyk Monitor
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: snyk-scan
-    
-    steps:
-      - uses: actions/checkout@v4
+      name: Snyk Monitor
+      runs-on: ubuntu-latest
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      needs: snyk-scan # This job still depends on the scan finishing first
+      
+      steps:
+        - uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: maven
+        # The Snyk action will handle Java setup if needed, but it's good practice 
+        # to set it up for consistency and for build steps.
+        - uses: actions/setup-java@v4
+          with:
+            java-version: '17'
+            distribution: 'temurin'
+            cache: maven
 
-      - name: Build Project
-        run: mvn clean install -DskipTests
+        # Optional but recommended: ensure project is buildable before monitoring
+        - name: Build Project
+          run: mvn clean install -DskipTests
 
-      - name: Install Snyk CLI
-        run: |
-          curl -Lo snyk https://github.com/snyk/cli/releases/latest/download/snyk-linux
-          chmod +x snyk
-          sudo mv snyk /usr/local/bin/
-
-      - name: Snyk Monitor
-        run: snyk monitor --org=yassir2222 --file=pom.xml
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        - name: Snyk Monitor
+          # Use the official Snyk GitHub Action for Maven
+          uses: snyk/actions/maven@master
+          env:
+            # The SNYK_TOKEN is securely passed to the action
+            SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          with:
+            # Command to run, in this case 'monitor'
+            command: monitor
+            # Arguments for the Snyk command
+            args: --org=yassir2222 --file=pom.xml
