@@ -129,7 +129,7 @@ jobs:
 
     # Install Snyk CLI via the official action (correct action path + tag)
     - name: Set up Snyk CLI
-      uses: snyk/actions/setup@v3
+      uses: snyk/actions/setup@master
 
     # Work from the Maven project folder
     - name: Disable Maven Wrapper so Snyk uses mvn
