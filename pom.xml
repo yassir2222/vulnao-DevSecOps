@@ -171,45 +171,37 @@
 			</plugin>
 
 			<!-- OWASP Dependency Check Plugin -->
-		<plugin>
-    <groupId>org.owasp</groupId>
-    <artifactId>dependency-check-maven</artifactId>
-    <version>9.0.9</version>
-    <configuration>
-        <formats>
-            <format>HTML</format>
-            <format>JSON</format>
-        </formats>
-        <!-- Ne pas faire échouer le build -->
-        <failBuildOnCVSS>11</failBuildOnCVSS>
-
-        <!-- Configuration NVD API -->
-        <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
-        <nvdMaxRetryCount>5</nvdMaxRetryCount>
-        <nvdApiDelay>6000</nvdApiDelay>
-
-        <!-- Optimisations -->
-        <skipSystemScope>true</skipSystemScope>
-        <skipTestScope>true</skipTestScope>
-        <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
-
-        <!-- Cache -->
-        <autoUpdate>true</autoUpdate>
-        <cacheDirectory>${user.home}/.m2/repository/org/owasp/dependency-check-data</cacheDirectory>
-
-        <!-- Suppressions -->
-        <suppressionFiles>
-            <suppressionFile>owasp-suppression.xml</suppressionFile>
-        </suppressionFiles>
-    </configuration>
-    <executions>
-        <execution>
-            <goals>
-                <goal>check</goal>
-            </goals>
-        </execution>
-    </executions>
-</plugin>
+			<plugin>
+					<groupId>org.owasp</groupId>
+					<artifactId>dependency-check-maven</artifactId>
+					<version>10.0.4</version>
+					<configuration>
+					<nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
+					<nvdApiDelay>6000</nvdApiDelay>
+					
+					<!-- Ne pas faire échouer le build -->
+					<failBuildOnCVSS>11</failBuildOnCVSS>
+					
+					<!-- Exclure certaines dépendances -->
+					<skipSystemScope>true</skipSystemScope>
+					<skipTestScope>true</skipTestScope>
+					
+					<!-- Formats de sortie -->
+					<formats>
+						<format>HTML</format>
+						<format>JSON</format>
+						<format>SARIF</format>
+					</formats>
+					
+					<!-- Cache data directory -->
+					<dataDirectory>${user.home}/owasp-data</dataDirectory>
+					
+					<!-- Suppressions (optionnel) -->
+					<suppressionFiles>
+						<suppressionFile>owasp-suppressions.xml</suppressionFile>
+					</suppressionFiles>
+					</configuration>
+				</plugin>
 
 			<!-- License Maven Plugin -->
 			<plugin>

@@ -1,23 +1,27 @@
 name: Dependency Vulnerability Scan
 
 on:
-  workflow_call:
   push:
     branches: [ main, develop ]
   pull_request:
   schedule:
     - cron: '0 0 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
 
 jobs:
   snyk-scan:
-    name: Snyk Dependency Check
+    name: Snyk Security Scan
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
+      - uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -26,76 +30,103 @@ jobs:
       - name: Build project
         run: mvn clean package -DskipTests
 
-      - name: Run Snyk
-        uses: snyk/actions/maven@master
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+
+      - name: Snyk Security Scan
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=high --sarif-file-output=snyk.sarif
+        run: |
+          snyk auth ${{ secrets.SNYK_TOKEN }}
+          snyk test \
+            --severity-threshold=high \
+            --json-file-output=snyk-report.json \
+            --sarif-file-output=snyk.sarif \
+            --all-projects || true
 
       - name: Upload Snyk SARIF
+        if: always() && hashFiles('snyk.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: snyk.sarif
+          category: snyk
 
       - name: Upload Snyk Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: snyk-report
-          path: snyk.sarif
+          path: |
+            snyk-report.json
+            snyk.sarif
+          if-no-files-found: warn
 
   owasp-dependency-check:
     name: OWASP Dependency Check
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
+      - uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
 
-      - name: Cache NVD Data
-        uses: actions/cache@v3
+      - name: Cache NVD Database
+        uses: actions/cache@v4
         with:
-          path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: ${{ runner.os }}-nvd-${{ hashFiles('**/pom.xml') }}
+          path: |
+            ~/.m2/repository/org/owasp/dependency-check-data
+            ~/owasp-data
+          key: ${{ runner.os }}-owasp-nvd-${{ github.run_id }}
           restore-keys: |
-            ${{ runner.os }}-nvd-
+            ${{ runner.os }}-owasp-nvd-
 
-      - name: Run OWASP Dependency Check with NVD API Key
+      - name: Run OWASP Dependency Check
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
-          mvn org.owasp:dependency-check-maven:check \\
-            -DnvdApiKey=${NVD_API_KEY} \\
-            -DfailBuildOnCVSS=11 \\
-            -DskipSystemScope=true \\
-            -DskipTestScope=true
+          mvn org.owasp:dependency-check-maven:10.0.4:check \
+            -DnvdApiKey="${NVD_API_KEY}" \
+            -DnvdApiDelay=6000 \
+            -DfailBuildOnCVSS=11 \
+            -DskipSystemScope=true \
+            -DskipTestScope=true \
+            -Dformats=HTML,JSON,SARIF \
+            -DdataDirectory=~/owasp-data
         continue-on-error: true
 
-      - name: Upload OWASP Report
+      - name: Upload OWASP SARIF
+        if: always() && hashFiles('target/dependency-check-report.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: target/dependency-check-report.sarif
+          category: owasp
+
+      - name: Upload OWASP Reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: owasp-dependency-check-report
-          path: target/dependency-check-report.html
+          name: owasp-reports
+          path: |
+            target/dependency-check-report.html
+            target/dependency-check-report.json
+            target/dependency-check-report.sarif
+          if-no-files-found: warn
 
   snyk-monitor:
     name: Snyk Monitor
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: snyk-scan
+    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup JDK 17
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -104,25 +135,10 @@ jobs:
       - name: Build Project
         run: mvn clean install -DskipTests
 
-      - name: Install Snyk CLI
+      - name: Snyk Monitor
         run: |
-          curl -Lo snyk https://static.snyk.io/cli/latest/snyk-linux
-          chmod +x snyk
-          sudo mv snyk /usr/local/bin/
-
-      - name: Authenticate Snyk
+          npm install -g snyk
+          snyk auth ${{ secrets.SNYK_TOKEN }}
+          snyk monitor --project-name=vulnado --all-projects
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        run: snyk auth $SNYK_TOKEN
-
-      - name: Snyk Monitor with CLI
-        continue-on-error: true
-        run: |
-          snyk monitor \
-            --severity-threshold=medium \
-            --project-name=vulnado \
-            --maven
-
-      - name: Snyk Monitor Status
-        if: always()
-        run: echo "Snyk monitoring completed"
