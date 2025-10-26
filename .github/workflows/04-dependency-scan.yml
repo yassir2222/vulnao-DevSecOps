@@ -132,12 +132,9 @@ jobs:
         run: mvn clean install -DskipTests
 
       - name: Snyk Monitor
-        run: |
-          npm install -g snyk
-          snyk auth ${{ secrets.SNYK_TOKEN }}
-          snyk monitor \
-            --org=yassir2222 \
-            --project-name=vulnao-DevSecOps \
-            -- mvn dependency:tree
+        uses: snyk/actions/maven@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: monitor
+          args: --org=yassir2222
