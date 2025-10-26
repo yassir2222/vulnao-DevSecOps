@@ -135,6 +135,9 @@ jobs:
         run: |
           npm install -g snyk
           snyk auth ${{ secrets.SNYK_TOKEN }}
-          snyk monitor --org=yassir2222 --project-name=vulnao-DevSecOps
+          snyk monitor \
+            --org=yassir2222 \
+            --project-name=vulnao-DevSecOps \
+            -- mvn dependency:tree
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
