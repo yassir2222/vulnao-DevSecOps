@@ -12,28 +12,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Build Docker images
         run: docker compose build
 
+      - name: List Docker images
+        run: docker images
+
       - name: Save Docker images
         run: |
-          docker save vulnado_vulnado:latest -o vulnado.tar
-          docker save vulnado_client:latest -o client.tar
-          docker save vulnado_internal_site:latest -o internal.tar
+          # Use the actual image names from docker compose
+          docker save $(docker images --format "{{.Repository}}:{{.Tag}}" | grep -E "(vulnado|client|internal)" | head -3) -o images.tar
 
       - name: Upload Docker images
         uses: actions/upload-artifact@v4
         with:
           name: docker-images
-          path: |
-            vulnado.tar
-            client.tar
-            internal.tar
+          path: images.tar
           retention-days: 1
 
   trivy-scan:
@@ -42,34 +41,43 @@ jobs:
     needs: build-images
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download Docker images
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: docker-images
 
       - name: Load Docker images
+        run: docker load -i images.tar
+
+      - name: List loaded images
+        run: docker images
+
+      - name: Get vulnado image name
+        id: get-image
         run: |
-          docker load -i vulnado.tar
+          IMAGE_NAME=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep vulnado | grep -v client | grep -v internal | head -1)
+          echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
+          echo "Scanning image: $IMAGE_NAME"
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'vulnado_vulnado:latest'
+          image-ref: ${{ steps.get-image.outputs.image_name }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'
 
       - name: Generate Trivy HTML report
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'vulnado_vulnado:latest'
+          image-ref: ${{ steps.get-image.outputs.image_name }}
           format: 'template'
           template: '@/contrib/html.tpl'
           output: 'trivy-report.html'
@@ -86,15 +94,21 @@ jobs:
     needs: build-images
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download Docker images
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: docker-images
 
       - name: Load Docker images
-        run: docker load -i vulnado.tar
+        run: docker load -i images.tar
+
+      - name: Get vulnado image name
+        id: get-image
+        run: |
+          IMAGE_NAME=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep vulnado | grep -v client | grep -v internal | head -1)
+          echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
 
       - name: Run Snyk Container Scan
         continue-on-error: true
@@ -102,8 +116,8 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          image: vulnado_vulnado:latest
-          args: --severity-threshold=high --file=Dockerfile
+          image: ${{ steps.get-image.outputs.image_name }}
+          args: --severity-threshold=high
 
       - name: Upload Snyk Container results
         if: always()
@@ -111,6 +125,7 @@ jobs:
         with:
           name: snyk-container-report
           path: snyk.sarif
+          if-no-files-found: warn
 
   anchore-scan:
     name: Anchore Container Scan
@@ -118,20 +133,26 @@ jobs:
     needs: build-images
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download Docker images
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: docker-images
 
       - name: Load Docker images
-        run: docker load -i vulnado.tar
+        run: docker load -i images.tar
+
+      - name: Get vulnado image name
+        id: get-image
+        run: |
+          IMAGE_NAME=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep vulnado | grep -v client | grep -v internal | head -1)
+          echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
 
       - name: Run Anchore scan
-        uses: anchore/scan-action@v3
+        uses: anchore/scan-action@v4
         with:
-          image: vulnado_vulnado:latest
+          image: ${{ steps.get-image.outputs.image_name }}
           fail-build: false
           severity-cutoff: high
 
@@ -140,6 +161,7 @@ jobs:
         with:
           name: anchore-report
           path: anchore-reports/
+          if-no-files-found: warn
 
   grype-scan:
     name: Grype Vulnerability Scanner
@@ -147,24 +169,30 @@ jobs:
     needs: build-images
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download Docker images
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: docker-images
 
       - name: Load Docker images
-        run: docker load -i vulnado.tar
+        run: docker load -i images.tar
+
+      - name: Get vulnado image name
+        id: get-image
+        run: |
+          IMAGE_NAME=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep vulnado | grep -v client | grep -v internal | head -1)
+          echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
 
       - name: Run Grype
-        uses: anchore/scan-action@v3
+        uses: anchore/scan-action@v4
         with:
-          image: vulnado_vulnado:latest
+          image: ${{ steps.get-image.outputs.image_name }}
           output-format: sarif
           fail-build: false
 
       - name: Upload Grype results
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: results.sarif
