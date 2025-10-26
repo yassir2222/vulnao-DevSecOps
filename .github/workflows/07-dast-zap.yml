@@ -1,0 +1,116 @@
+name: DAST - OWASP ZAP
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  zap-baseline-scan:
+    name: ZAP Baseline Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Start application
+        run: |
+          docker-compose up -d
+          sleep 40
+
+      - name: Verify services
+        run: |
+          curl -I http://localhost:8080 || echo "API not responding"
+          curl -I http://localhost:1337 || echo "Client not responding"
+
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.7.0
+        with:
+          target: 'http://localhost:8080'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
+          allow_issue_writing: false
+          fail_action: false
+
+      - name: Upload ZAP Baseline Report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: zap-baseline-report
+          path: |
+            report_html.html
+            report_json.json
+            report_md.md
+
+  zap-full-scan:
+    name: ZAP Full Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Start application
+        run: |
+          docker-compose up -d
+          sleep 40
+
+      - name: ZAP Full Scan
+        uses: zaproxy/action-full-scan@v0.7.0
+        with:
+          target: 'http://localhost:8080'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a -j'
+          allow_issue_writing: false
+          fail_action: false
+
+      - name: Upload ZAP Full Scan Report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: zap-full-scan-report
+          path: |
+            report_html.html
+            report_json.json
+            report_md.md
+
+  zap-api-scan:
+    name: ZAP API Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Start application
+        run: |
+          docker-compose up -d
+          sleep 40
+
+      - name: ZAP API Scan
+        uses: zaproxy/action-api-scan@v0.3.0
+        with:
+          target: 'http://localhost:8080/v3/api-docs'
+          format: openapi
+          cmd_options: '-a'
+          allow_issue_writing: false
+          fail_action: false
+
+      - name: Upload ZAP API Report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: zap-api-scan-report
+          path: |
+            report_html.html
+            report_json.json
+
+  cleanup:
+    name: Cleanup ZAP Environment
+    runs-on: ubuntu-latest
+    needs: [zap-baseline-scan, zap-full-scan, zap-api-scan]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Stop Docker Compose
+        run: |
+          docker-compose down -v || true

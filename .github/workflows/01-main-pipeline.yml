@@ -1,0 +1,53 @@
+name: DevSecOps Main Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  trigger-secrets-scan:
+    uses: ./.github/workflows/02-secrets-scan.yml
+    secrets: inherit
+
+  trigger-sast:
+    needs: trigger-secrets-scan
+    uses: ./.github/workflows/03-sast-sonarcloud.yml
+    secrets: inherit
+
+  trigger-dependency-scan:
+    needs: trigger-secrets-scan
+    uses: ./.github/workflows/04-dependency-scan.yml
+    secrets: inherit
+
+  trigger-container-scan:
+    needs: [trigger-sast, trigger-dependency-scan]
+    uses: ./.github/workflows/05-container-scan.yml
+    secrets: inherit
+
+  trigger-deploy:
+    needs: trigger-container-scan
+    uses: ./.github/workflows/06-deploy-test.yml
+    secrets: inherit
+
+  trigger-dast:
+    needs: trigger-deploy
+    uses: ./.github/workflows/07-dast-zap.yml
+    secrets: inherit
+
+  trigger-security-testing:
+    needs: trigger-deploy
+    uses: ./.github/workflows/08-security-testing.yml
+    secrets: inherit
+
+  trigger-license:
+    uses: ./.github/workflows/09-license-compliance.yml
+    secrets: inherit
+
+  trigger-report:
+    needs: [trigger-sast, trigger-dependency-scan, trigger-container-scan, trigger-dast, trigger-security-testing]
+    if: always()
+    uses: ./.github/workflows/10-security-report.yml
+    secrets: inherit

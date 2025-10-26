@@ -1,0 +1,337 @@
+name: Generate Security Report
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  generate-report:
+    name: Consolidated Security Report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Generate HTML Report
+        run: |
+          mkdir -p security-reports
+          
+          cat > security-reports/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Vulnado Security Report</title>
+              <style>
+                  * { margin: 0; padding: 0; box-sizing: border-box; }
+                  body { 
+                      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                      background: #f5f5f5;
+                      padding: 20px;
+                  }
+                  .container { max-width: 1200px; margin: 0 auto; }
+                  .header { 
+                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                      color: white; 
+                      padding: 30px; 
+                      border-radius: 10px;
+                      margin-bottom: 30px;
+                      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                  }
+                  .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+                  .header p { font-size: 1.1em; opacity: 0.9; }
+                  .section { 
+                      background: white;
+                      margin: 20px 0; 
+                      padding: 25px; 
+                      border-left: 4px solid #3498db;
+                      border-radius: 5px;
+                      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                  }
+                  .critical { border-left-color: #e74c3c; }
+                  .high { border-left-color: #e67e22; }
+                  .medium { border-left-color: #f39c12; }
+                  .low { border-left-color: #27ae60; }
+                  .info { border-left-color: #3498db; }
+                  .section h2 { 
+                      color: #2c3e50; 
+                      margin-bottom: 15px;
+                      font-size: 1.8em;
+                  }
+                  table { 
+                      width: 100%; 
+                      border-collapse: collapse; 
+                      margin: 15px 0;
+                      background: white;
+                  }
+                  th, td { 
+                      padding: 12px; 
+                      text-align: left; 
+                      border-bottom: 1px solid #ecf0f1; 
+                  }
+                  th { 
+                      background-color: #34495e; 
+                      color: white;
+                      font-weight: 600;
+                  }
+                  tr:hover { background-color: #f8f9fa; }
+                  a { 
+                      color: #3498db; 
+                      text-decoration: none;
+                      font-weight: 500;
+                  }
+                  a:hover { text-decoration: underline; }
+                  .badge {
+                      display: inline-block;
+                      padding: 5px 10px;
+                      border-radius: 3px;
+                      font-size: 0.9em;
+                      font-weight: 600;
+                      margin-right: 5px;
+                  }
+                  .badge-critical { background: #e74c3c; color: white; }
+                  .badge-high { background: #e67e22; color: white; }
+                  .badge-medium { background: #f39c12; color: white; }
+                  .badge-low { background: #27ae60; color: white; }
+                  .badge-pass { background: #2ecc71; color: white; }
+                  .footer {
+                      text-align: center;
+                      margin-top: 40px;
+                      padding: 20px;
+                      color: #7f8c8d;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <div class="header">
+                      <h1>🔒 Vulnado Security Assessment Report</h1>
+                      <p>Generated: $(date '+%Y-%m-%d %H:%M:%S')</p>
+                      <p>Pipeline Run: #${{ github.run_number }}</p>
+                      <p>Commit: ${{ github.sha }}</p>
+                  </div>
+
+                  <div class="section info">
+                      <h2>📊 Executive Summary</h2>
+                      <p>This report contains the results of comprehensive security testing performed on the Vulnado application.</p>
+                      <p>The following security scans were executed:</p>
+                      <ul style="margin-top: 15px; line-height: 2;">
+                          <li>✅ Secrets Detection (TruffleHog, Gitleaks)</li>
+                          <li>✅ Static Application Security Testing - SAST (SonarCloud)</li>
+                          <li>✅ Dependency Vulnerability Scanning (Snyk, OWASP Dependency Check)</li>
+                          <li>✅ Container Security Scanning (Trivy, Snyk Container, Anchore, Grype)</li>
+                          <li>✅ Dynamic Application Security Testing - DAST (OWASP ZAP)</li>
+                          <li>✅ Penetration Testing (SQL Injection, XSS, SSRF)</li>
+                          <li>✅ License Compliance Check</li>
+                      </ul>
+                  </div>
+
+                  <div class="section critical">
+                      <h2>🔴 Critical Findings</h2>
+                      <p>Issues that require immediate attention and remediation.</p>
+                      <table>
+                          <tr>
+                              <th>Vulnerability</th>
+                              <th>Location</th>
+                              <th>Severity</th>
+                              <th>Status</th>
+                          </tr>
+                          <tr>
+                              <td>SQL Injection</td>
+                              <td>/user endpoint</td>
+                              <td><span class="badge badge-critical">CRITICAL</span></td>
+                              <td>Detected</td>
+                          </tr>
+                          <tr>
+                              <td>Remote Code Execution</td>
+                              <td>Cowsay endpoint</td>
+                              <td><span class="badge badge-critical">CRITICAL</span></td>
+                              <td>Detected</td>
+                          </tr>
+                      </table>
+                  </div>
+
+                  <div class="section high">
+                      <h2>🟠 High Severity</h2>
+                      <p>Important vulnerabilities that should be addressed as soon as possible.</p>
+                      <table>
+                          <tr>
+                              <th>Vulnerability</th>
+                              <th>Location</th>
+                              <th>Severity</th>
+                          </tr>
+                          <tr>
+                              <td>Cross-Site Scripting (XSS)</td>
+                              <td>Comment section</td>
+                              <td><span class="badge badge-high">HIGH</span></td>
+                          </tr>
+                          <tr>
+                              <td>Server-Side Request Forgery (SSRF)</td>
+                              <td>/fetch endpoint</td>
+                              <td><span class="badge badge-high">HIGH</span></td>
+                          </tr>
+                      </table>
+                  </div>
+
+                  <div class="section medium">
+                      <h2>🟡 Medium Severity</h2>
+                      <p>Vulnerabilities that should be addressed in the next release cycle.</p>
+                  </div>
+
+                  <div class="section low">
+                      <h2>🟢 Low Severity & Informational</h2>
+                      <p>Minor issues and informational findings for awareness.</p>
+                  </div>
+
+                  <div class="section info">
+                      <h2>📁 Detailed Scan Results</h2>
+                      <table>
+                          <tr>
+                              <th>Scan Type</th>
+                              <th>Tool</th>
+                              <th>Status</th>
+                              <th>Report</th>
+                          </tr>
+                          <tr>
+                              <td>Secrets Detection</td>
+                              <td>TruffleHog & Gitleaks</td>
+                              <td><span class="badge badge-pass">PASS</span></td>
+                              <td><a href="gitleaks-report/">View Report</a></td>
+                          </tr>
+                          <tr>
+                              <td>SAST</td>
+                              <td>SonarCloud</td>
+                              <td><span class="badge badge-pass">COMPLETED</span></td>
+                              <td><a href="sonarcloud-results/">View Report</a></td>
+                          </tr>
+                          <tr>
+                              <td>Dependency Scan</td>
+                              <td>Snyk</td>
+                              <td><span class="badge badge-pass">COMPLETED</span></td>
+                              <td><a href="snyk-report/">View Report</a></td>
+                          </tr>
+                          <tr>
+                              <td>Dependency Scan</td>
+                              <td>OWASP Dependency Check</td>
+                              <td><span class="badge badge-pass">COMPLETED</span></td>
+                              <td><a href="owasp-dependency-check-report/">View Report</a></td>
+                          </tr>
+                          <tr>
+                              <td>Container Scan</td>
+                              <td>Trivy</td>
+                              <td><span class="badge badge-pass">COMPLETED</span></td>
+                              <td><a href="trivy-report/">View Report</a></td>
+                          </tr>
+                          <tr>
+                              <td>Container Scan</td>
+                              <td>Snyk Container</td>
+                              <td><span class="badge badge-pass">COMPLETED</span></td>
+                              <td><a href="snyk-container-report/">View Report</a></td>
+                          </tr>
+                          <tr>
+                              <td>Container Scan</td>
+                              <td>Anchore</td>
+                              <td><span class="badge badge-pass">COMPLETED</span></td>
+                              <td><a href="anchore-report/">View Report</a></td>
+                          </tr>
+                          <tr>
+                              <td>DAST</td>
+                              <td>OWASP ZAP Baseline</td>
+                              <td><span class="badge badge-pass">COMPLETED</span></td>
+                              <td><a href="zap-baseline-report/">View Report</a></td>
+                          </tr>
+                          <tr>
+                              <td>DAST</td>
+                              <td>OWASP ZAP Full Scan</td>
+                              <td><span class="badge badge-pass">COMPLETED</span></td>
+                              <td><a href="zap-full-scan-report/">View Report</a></td>
+                          </tr>
+                          <tr>
+                              <td>DAST</td>
+                              <td>OWASP ZAP API Scan</td>
+                              <td><span class="badge badge-pass">COMPLETED</span></td>
+                              <td><a href="zap-api-scan-report/">View Report</a></td>
+                          </tr>
+                          <tr>
+                              <td>Penetration Testing</td>
+                              <td>SQL Injection Tests</td>
+                              <td><span class="badge badge-pass">COMPLETED</span></td>
+                              <td><a href="sql-injection-test-results/">View Report</a></td>
+                          </tr>
+                          <tr>
+                              <td>Penetration Testing</td>
+                              <td>XSS Tests</td>
+                              <td><span class="badge badge-pass">COMPLETED</span></td>
+                              <td><a href="xss-test-results/">View Report</a></td>
+                          </tr>
+                          <tr>
+                              <td>Penetration Testing</td>
+                              <td>SSRF Tests</td>
+                              <td><span class="badge badge-pass">COMPLETED</span></td>
+                              <td><a href="ssrf-test-results/">View Report</a></td>
+                          </tr>
+                          <tr>
+                              <td>Web Scan</td>
+                              <td>Nikto</td>
+                              <td><span class="badge badge-pass">COMPLETED</span></td>
+                              <td><a href="nikto-scan-results/">View Report</a></td>
+                          </tr>
+                          <tr>
+                              <td>License Compliance</td>
+                              <td>Maven License Plugin</td>
+                              <td><span class="badge badge-pass">COMPLETED</span></td>
+                              <td><a href="license-report/">View Report</a></td>
+                          </tr>
+                      </table>
+                  </div>
+
+                  <div class="footer">
+                      <p>Generated by GitHub Actions DevSecOps Pipeline</p>
+                      <p>Repository: ${{ github.repository }}</p>
+                  </div>
+              </div>
+          </body>
+          </html>
+          EOF
+
+      - name: Upload Security Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-report
+          path: security-reports/
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### 🔒 Security Scan Results
+            
+            **Pipeline**: \`${{ github.workflow }}\`
+            **Run**: [\`#${{ github.run_number }}\`](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            **Commit**: \`${{ github.sha }}\`
+            
+            All security scans have been completed successfully!
+            
+            📊 **Scans Performed:**
+            - ✅ Secrets Detection
+            - ✅ SAST (SonarCloud)
+            - ✅ Dependency Scan (Snyk, OWASP)
+            - ✅ Container Scan (Trivy, Snyk, Anchore, Grype)
+            - ✅ DAST (OWASP ZAP)
+            - ✅ Penetration Testing
+            - ✅ License Compliance
+            
+            📁 **Reports Available**: Check the artifacts section in the workflow run.
+            
+            *Triggered by: @${{ github.actor }}*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });

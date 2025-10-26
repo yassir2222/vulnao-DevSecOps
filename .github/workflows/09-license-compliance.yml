@@ -1,0 +1,76 @@
+name: License Compliance Check
+
+on:
+  workflow_call:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 1'
+
+jobs:
+  license-check:
+    name: Maven License Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Generate License Report
+        run: |
+          mvn license:add-third-party
+          mvn license:aggregate-download-licenses
+
+      - name: Upload License Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: license-report
+          path: |
+            target/generated-sources/license/THIRD-PARTY.txt
+            target/generated-resources/licenses/
+
+  fossa-scan:
+    name: FOSSA License Scan
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run FOSSA Scan
+        uses: fossas/fossa-action@main
+        with:
+          api-key: ${{ secrets.FOSSA_API_KEY }}
+
+  license-finder:
+    name: License Finder
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Install License Finder
+        run: |
+          gem install license_finder
+
+      - name: Run License Finder
+        run: |
+          license_finder report --format html > license-finder-report.html || true
+
+      - name: Upload License Finder Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: license-finder-report
+          path: license-finder-report.html
