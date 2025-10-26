@@ -2,12 +2,11 @@ name: Dependency Vulnerability Scan
 
 on:
   workflow_call:
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  security-events: write
-  actions: read
+  push:
+    branches: [ main, develop ]
+  pull_request:
+  schedule:
+    - cron: '0 0 * * 0'
 
 jobs:
   snyk-scan:
