@@ -5,7 +5,6 @@ on:
   push:
     branches: [ main, develop ]
   pull_request:
-    types: [ opened, synchronize, reopened ]
 
 env:
   SONAR_ORGANIZATION: yassir2222
@@ -111,7 +110,7 @@ jobs:
             
             const comment = `## SonarCloud Analysis Results
             
-            🔍 [View Detailed Report](https://sonarcloud.io/summary/overall?id=${projectKey})
+            [View Detailed Report](https://sonarcloud.io/summary/overall?id=${projectKey})
             
             Quality Gate: ${{ steps.quality-gate.outcome }}
             
