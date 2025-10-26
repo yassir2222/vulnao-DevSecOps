@@ -2,9 +2,7 @@ name: Dependency Vulnerability Scan
 
 on:
   workflow_call:
-  push:
-    branches: [ main, develop ]
-  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
