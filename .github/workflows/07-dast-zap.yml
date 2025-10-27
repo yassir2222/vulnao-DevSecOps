@@ -31,15 +31,26 @@ jobs:
           curl -I http://localhost:8080 || echo "API not responding"
           curl -I http://localhost:1337 || echo "Client not responding"
 
-      - name: ZAP Baseline Scan
-        uses: zaproxy/action-baseline@v0.13.0
+      - name: Run ZAP Baseline Scan
+        run: |
+          docker run --network=host -v $(pwd):/zap/wrk/:rw \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py -t http://localhost:8080 \
+            -r zap-baseline-report.html \
+            -J zap-baseline-report.json \
+            -w zap-baseline-report.md \
+            -a || true
+
+      - name: Upload ZAP Baseline Report
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          target: 'http://localhost:8080'
-          rules_file_name: '.zap/rules.tsv'
-          cmd_options: '-a'
-          allow_issue_writing: false
-          fail_action: false
-          artifact_name: 'zap-baseline'
+          name: zap-baseline-report
+          path: |
+            zap-baseline-report.html
+            zap-baseline-report.json
+            zap-baseline-report.md
+          if-no-files-found: warn
 
       - name: Stop application
         if: always()
@@ -65,15 +76,26 @@ jobs:
           docker compose ps
           curl -I http://localhost:8080 || echo "API not responding"
 
-      - name: ZAP Full Scan
-        uses: zaproxy/action-full-scan@v0.11.0
+      - name: Run ZAP Full Scan
+        run: |
+          docker run --network=host -v $(pwd):/zap/wrk/:rw \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-full-scan.py -t http://localhost:8080 \
+            -r zap-full-scan-report.html \
+            -J zap-full-scan-report.json \
+            -w zap-full-scan-report.md \
+            -a -j || true
+
+      - name: Upload ZAP Full Scan Report
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          target: 'http://localhost:8080'
-          rules_file_name: '.zap/rules.tsv'
-          cmd_options: '-a -j'
-          allow_issue_writing: false
-          fail_action: false
-          artifact_name: 'zap-full-scan'
+          name: zap-full-scan-report
+          path: |
+            zap-full-scan-report.html
+            zap-full-scan-report.json
+            zap-full-scan-report.md
+          if-no-files-found: warn
 
       - name: Stop application
         if: always()
@@ -99,15 +121,25 @@ jobs:
           docker compose ps
           curl -I http://localhost:8080 || echo "API not responding"
 
-      - name: ZAP API Scan
-        uses: zaproxy/action-api-scan@v0.8.0
+      - name: Run ZAP API Scan
+        run: |
+          docker run --network=host -v $(pwd):/zap/wrk/:rw \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-api-scan.py -t http://localhost:8080/v3/api-docs \
+            -f openapi \
+            -r zap-api-scan-report.html \
+            -J zap-api-scan-report.json \
+            -a || true
+
+      - name: Upload ZAP API Scan Report
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          target: 'http://localhost:8080/v3/api-docs'
-          format: openapi
-          cmd_options: '-a'
-          allow_issue_writing: false
-          fail_action: false
-          artifact_name: 'zap-api-scan'
+          name: zap-api-scan-report
+          path: |
+            zap-api-scan-report.html
+            zap-api-scan-report.json
+          if-no-files-found: warn
 
       - name: Stop application
         if: always()
