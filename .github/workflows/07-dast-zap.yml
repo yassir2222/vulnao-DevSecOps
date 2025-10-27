@@ -4,6 +4,11 @@ on:
   workflow_call:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  issues: write
+  security-events: write
+
 jobs:
   zap-baseline-scan:
     name: ZAP Baseline Scan
