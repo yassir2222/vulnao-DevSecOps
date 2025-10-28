@@ -12,6 +12,7 @@ permissions:
   pull-requests: write
   security-events: write
   issues: write
+  actions: read
 
 jobs:
   trigger-secrets-scan:
@@ -44,6 +45,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      actions: read
 
   trigger-deploy:
     needs: trigger-container-scan
