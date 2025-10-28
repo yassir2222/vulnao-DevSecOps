@@ -2,7 +2,7 @@ name: Security Testing
 
 on:
   workflow_call:
-  workflow_dispatch:
+
 
 jobs:
   sql-injection-test:

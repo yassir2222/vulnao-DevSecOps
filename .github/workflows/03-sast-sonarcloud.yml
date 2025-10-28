@@ -2,9 +2,7 @@ name: SAST - SonarCloud Analysis
 
 on:
   workflow_call:
-  push:
-    branches: [ main, develop ]
-  pull_request:
+ 
 
 env:
   SONAR_ORGANIZATION: yassir2222

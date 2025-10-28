@@ -2,10 +2,7 @@ name: Container Security Scan
 
 on:
   workflow_call:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-
+  
 # Add permissions for security events
 permissions:
   contents: read

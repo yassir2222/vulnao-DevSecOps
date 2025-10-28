@@ -2,12 +2,7 @@ name: Dependency Vulnerability Scan
 
 on:
   workflow_call:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-  schedule:
-    - cron: '0 0 * * 0'
-
+  
 jobs:
   snyk-scan:
     name: Snyk Security Scan

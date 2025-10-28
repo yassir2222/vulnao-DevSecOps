@@ -2,10 +2,7 @@ name: License Compliance Check
 
 on:
   workflow_call:
-  push:
-    branches: [ main ]
-  schedule:
-    - cron: '0 0 * * 1'
+
 
 jobs:
   license-check:
