@@ -14,7 +14,7 @@ jobs:
 
   trigger-sast:
     needs: trigger-secrets-scan
-    uses: ./.github/workflows/03-sast-sonarcloud.yml
+    uses: ./.github/workflows/03-sast.yml
     secrets: inherit
 
   trigger-dependency-scan:
@@ -48,6 +48,5 @@ jobs:
 
   trigger-report:
     needs: [trigger-sast, trigger-dependency-scan, trigger-container-scan, trigger-dast, trigger-security-testing]
-    if: always()
     uses: ./.github/workflows/10-security-report.yml
     secrets: inherit
