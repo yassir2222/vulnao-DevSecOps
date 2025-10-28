@@ -7,46 +7,76 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+  issues: write
+
 jobs:
   trigger-secrets-scan:
     uses: ./.github/workflows/02-secrets-scan.yml
     secrets: inherit
+    permissions:
+      contents: read
+      security-events: write
 
   trigger-sast:
     needs: trigger-secrets-scan
     uses: ./.github/workflows/03-sast-sonarcloud.yml
     secrets: inherit
+    permissions:
+      contents: read
+      pull-requests: write
 
   trigger-dependency-scan:
     needs: trigger-secrets-scan
     uses: ./.github/workflows/04-dependency-scan.yml
     secrets: inherit
+    permissions:
+      contents: read
+      security-events: write
 
   trigger-container-scan:
     needs: [trigger-sast, trigger-dependency-scan]
     uses: ./.github/workflows/05-container-scan.yml
     secrets: inherit
+    permissions:
+      contents: read
+      security-events: write
 
   trigger-deploy:
     needs: trigger-container-scan
     uses: ./.github/workflows/06-deploy-test.yml
     secrets: inherit
+    permissions:
+      contents: read
 
   trigger-dast:
     needs: trigger-deploy
     uses: ./.github/workflows/07-dast-zap.yml
     secrets: inherit
+    permissions:
+      contents: read
+      issues: write
+      security-events: write
 
   trigger-security-testing:
     needs: trigger-deploy
     uses: ./.github/workflows/08-security-testing.yml
     secrets: inherit
+    permissions:
+      contents: read
 
   trigger-license:
     uses: ./.github/workflows/09-license-compliance.yml
     secrets: inherit
+    permissions:
+      contents: read
 
   trigger-report:
     needs: [trigger-sast, trigger-dependency-scan, trigger-container-scan, trigger-dast, trigger-security-testing]
     uses: ./.github/workflows/10-security-report.yml
     secrets: inherit
+    permissions:
+      contents: read
