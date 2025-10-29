@@ -2,6 +2,11 @@ name: DAST - OWASP ZAP
 
 on:
   workflow_call:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
 
 permissions:
   contents: read
