@@ -23,16 +23,24 @@ jobs:
       - name: Install Snyk CLI
         run: npm install -g snyk
 
+      - name: Authenticate Snyk
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: snyk auth ${{ secrets.SNYK_TOKEN }}
+
       - name: Snyk Security Scan
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          snyk auth ${{ secrets.SNYK_TOKEN }}
-          snyk test \
-            --severity-threshold=high \
-            --json-file-output=snyk-report.json \
-            --sarif-file-output=snyk.sarif || true
+          snyk test --all-projects --severity-threshold=high --json > snyk-report.json || true
+          snyk test --all-projects --sarif > snyk.sarif || true
+
+      - name: Verify files exist
+        run: |
+          ls -la
+          if [ -f snyk-report.json ]; then echo "snyk-report.json exists"; fi
+          if [ -f snyk.sarif ]; then echo "snyk.sarif exists"; fi
 
       - name: Upload Snyk SARIF
         if: always() && hashFiles('snyk.sarif') != ''
@@ -64,18 +72,16 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # ✅ Cache NVD amélioré
       - name: Cache NVD Database
         uses: actions/cache@v4
         with:
           path: |
             ~/.m2/repository/org/owasp/dependency-check-data
             ~/owasp-data
-          key: ${{ runner.os }}-owasp-nvd-${{ github.run_id }}
+          key: ${{ runner.os }}-owasp-nvd-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-owasp-nvd-
 
-      # ✅ OWASP avec NVD API Key correctement passée
       - name: Run OWASP Dependency Check
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
@@ -89,6 +95,12 @@ jobs:
             -Dformats=HTML,JSON,SARIF \
             -DdataDirectory=~/owasp-data
         continue-on-error: true
+
+      - name: Verify OWASP files
+        run: |
+          ls -la target/
+          if [ -f target/dependency-check-report.html ]; then echo "HTML report exists"; fi
+          if [ -f target/dependency-check-report.sarif ]; then echo "SARIF report exists"; fi
 
       - name: Upload OWASP SARIF
         if: always() && hashFiles('target/dependency-check-report.sarif') != ''
@@ -118,22 +130,19 @@ jobs:
 
     - uses: actions/setup-java@v4
       with:
-        java-version: '11'
+        java-version: '17'
         distribution: 'temurin'
         cache: maven
 
-    # Install Snyk CLI via the official action (correct action path + tag)
     - name: Set up Snyk CLI
       uses: snyk/actions/setup@master
 
-    # Work from the Maven project folder
     - name: Disable Maven Wrapper so Snyk uses mvn
       run: |
         if [ -f mvnw ]; then mv mvnw mvnw.disabled; fi
 
-    # Optional: sanity check that dependency:tree works for Snyk
-    - name: Verify dependency:tree
-      run: mvn -B -q org.apache.maven.plugins:maven-dependency-plugin:3.6.1:tree -DoutputType=dot -N -f pom.xml
+    - name: Verify dependency tree
+      run: mvn -B -q dependency:tree -DoutputType=dot -N -f pom.xml
 
     - name: Snyk Monitor
       env:
